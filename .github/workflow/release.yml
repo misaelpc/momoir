@@ -1,0 +1,131 @@
+name: Build Elixir Server and Processing
+
+on:
+  push:
+    branches:
+      - adrian
+  # workflow_dispatch:
+
+env:
+  MIX_ENV: prod
+  OTP_VERSION: 23.3.4.5
+  ELIXIR_VERSION: 1.12.3
+  NODE_VERSION: 10.x
+  CACHE_VERSION: 3
+  NODE_IP: 10.0.20.17
+
+
+jobs:
+  release-app:
+    name: Create Release App
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.10.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Pull source
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ env.OTP_VERSION }}
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+
+      - name: Restore the deps cache
+        uses: actions/cache@v3
+        id: deps-cache
+        with:
+          path: deps
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-deps-mixlockhash-${{ hashFiles(format('{0}{1}', github.workspace, '**/mix.lock')) }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-deps-
+
+      - name: Restore the _build cache
+        uses: actions/cache@v3
+        id: build-cache
+        with:
+          path: _build
+          key: ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-${{ env.MIX_ENV }}-build-mixlockhash-${{ hashFiles(format('{0}{1}', github.workspace, '**/mix.lock')) }}
+          restore-keys: |
+            ${{ env.CACHE_VERSION }}-${{ runner.os }}-${{ env.ELIXIR_VERSION }}-${{ env.OTP_VERSION }}-${{ env.MIX_ENV }}-build-
+
+      - name: Get Mix dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+
+      - name: Compile Mix dependencies
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        run: mix deps.compile
+
+      - name: Compile
+        run: mix compile
+
+      - name: Setup Nodejs
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODEVERSION }}
+
+      - name: Create release All Apps
+        run: |
+          rm -rf _build/prod/rel/
+          mix release all_apps
+        env:
+          SECRET_KEY_BASE: 4Q3zpCsYtOd5BCsugNx++xmYZUJzmNiP2R27hbR5eboucZdJWuAFkd/ljbHezym2
+      # Release Server
+      - name: Create release Server
+        run: |
+          mix release server
+        env:
+          SECRET_KEY_BASE: 4Q3zpCsYtOd5BCsugNx++xmYZUJzmNiP2R27hbR5eboucZdJWuAFkd/ljbHezym2
+      # Release Processing
+      - name: Create release Processing
+        run: |
+          mix release processing
+        env:
+          SECRET_KEY_BASE: 4Q3zpCsYtOd5BCsugNx++xmYZUJzmNiP2R27hbR5eboucZdJWuAFkd/ljbHezym2
+
+      # Build necessary files and upload
+      - name: Create a tar file
+        # run: tar -czvf release_${{ github.sha }}.tar.gz _build/prod/rel
+        run: tar -czvf release_${{ github.run_number }}.tar.gz _build/prod/rel
+
+      - name: Create a lastcommit file
+        run: git log --oneline -1 > last_commit.txt
+
+      # - name: Create artifact
+      #   uses: actions/upload-artifact@v1
+      #   with:
+      #     name: zipped-bundle
+      #     path: release_${{ github.sha }}.tar.
+
+      # TEMPORAL -------------------------------------------------------------
+      - name: Configure GCP credentials
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: './credentials_google.json'
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+
+      - name: 'Use gcloud CLI'
+        run: 'gcloud info'  
+
+      # - name: Upload to GCS
+      #   run: gsutil cp "release_${{ github.sha }}.tar.gz" "gs://releases-spot2nite-staging/releases/release_${{ github.sha }}.tar.gz"
+      - name: Upload-cloud-storage release
+        uses: "google-github-actions/upload-cloud-storage@v1"
+        with:
+          path: "./release_${{ github.run_number }}.tar.gz"
+          destination: "spot2nite_builds/releases"
+      # temporal ---------------------------------------------------------------
+      - name: Remove release from _build
+        run: rm -rf _build/prod/rel/
+      
+
