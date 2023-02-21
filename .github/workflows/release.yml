@@ -78,8 +78,7 @@ jobs:
       - name: Create release 
         run: |
           mix release 
-        env:
-          SECRET_KEY_BASE: 4Q3zpCsYtOd5BCsugNx++xmYZUJzmNiP2R27hbR5eboucZdJWuAFkd/ljbHezym2
+        
 
       # Build necessary files and upload
       - name: Create a tar file
