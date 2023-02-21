@@ -100,31 +100,31 @@ jobs:
       - name: Create a lastcommit file
         run: git log --oneline -1 > last_commit.txt
 
-      # - name: Create artifact
-      #   uses: actions/upload-artifact@v1
+      - name: Create artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: zipped-bundle
+          path: release_${{ github.run_number }}.tar.
+
+      # # TEMPORAL -------------------------------------------------------------
+      # - name: Configure GCP credentials
+      #   uses: 'google-github-actions/auth@v1'
       #   with:
-      #     name: zipped-bundle
-      #     path: release_${{ github.sha }}.tar.
+      #     credentials_json: './credentials_google.json'
+      # - name: 'Set up Cloud SDK'
+      #   uses: 'google-github-actions/setup-gcloud@v1'
 
-      # TEMPORAL -------------------------------------------------------------
-      - name: Configure GCP credentials
-        uses: 'google-github-actions/auth@v1'
-        with:
-          credentials_json: './credentials_google.json'
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      # - name: 'Use gcloud CLI'
+      #   run: 'gcloud info'  
 
-      - name: 'Use gcloud CLI'
-        run: 'gcloud info'  
-
-      # - name: Upload to GCS
-      #   run: gsutil cp "release_${{ github.sha }}.tar.gz" "gs://releases-spot2nite-staging/releases/release_${{ github.sha }}.tar.gz"
-      - name: Upload-cloud-storage release
-        uses: "google-github-actions/upload-cloud-storage@v1"
-        with:
-          path: "./release_${{ github.run_number }}.tar.gz"
-          destination: "spot2nite_builds/releases"
-      # temporal ---------------------------------------------------------------
+      # # - name: Upload to GCS
+      # #   run: gsutil cp "release_${{ github.sha }}.tar.gz" "gs://releases-spot2nite-staging/releases/release_${{ github.sha }}.tar.gz"
+      # - name: Upload-cloud-storage release
+      #   uses: "google-github-actions/upload-cloud-storage@v1"
+      #   with:
+      #     path: "./release_${{ github.run_number }}.tar.gz"
+      #     destination: "spot2nite_builds/releases"
+      # # temporal ---------------------------------------------------------------
       - name: Remove release from _build
         run: rm -rf _build/prod/rel/
       
