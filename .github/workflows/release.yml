@@ -1,9 +1,10 @@
-name: Build Elixir Server and Processing
+name: Build Elixir Release
 
 on:
   push:
     branches:
       - adrian
+      - master
   # workflow_dispatch:
 
 env:
@@ -73,29 +74,17 @@ jobs:
         with:
           node-version: ${{ env.NODEVERSION }}
 
-      - name: Create release All Apps
-        run: |
-          rm -rf _build/prod/rel/
-          mix release all_apps
-        env:
-          SECRET_KEY_BASE: 4Q3zpCsYtOd5BCsugNx++xmYZUJzmNiP2R27hbR5eboucZdJWuAFkd/ljbHezym2
-      # Release Server
-      - name: Create release Server
-        run: |
-          mix release server
-        env:
-          SECRET_KEY_BASE: 4Q3zpCsYtOd5BCsugNx++xmYZUJzmNiP2R27hbR5eboucZdJWuAFkd/ljbHezym2
       # Release Processing
-      - name: Create release Processing
+      - name: Create release 
         run: |
-          mix release processing
+          mix release 
         env:
           SECRET_KEY_BASE: 4Q3zpCsYtOd5BCsugNx++xmYZUJzmNiP2R27hbR5eboucZdJWuAFkd/ljbHezym2
 
       # Build necessary files and upload
       - name: Create a tar file
         # run: tar -czvf release_${{ github.sha }}.tar.gz _build/prod/rel
-        run: tar -czvf release_${{ github.run_number }}.tar.gz _build/prod/rel
+        run: tar -czvf release_${{ github.run_number }}.tar.gz _build/prod
 
       - name: Create a lastcommit file
         run: git log --oneline -1 > last_commit.txt
