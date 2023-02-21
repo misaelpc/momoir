@@ -104,7 +104,7 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: zipped-bundle
-          path: release_${{ github.run_number }}.tar.
+          path: release_${{ github.run_number }}.tar.gz
 
       # # TEMPORAL -------------------------------------------------------------
       # - name: Configure GCP credentials
